@@ -53,6 +53,7 @@ exportMethods(
     "mappedLkeys", "mappedRkeys", "mappedkeys",
     "count.mappedLkeys", "count.mappedRkeys", "count.mappedkeys",
     "show",
+    "summary",
     "toTable",
     "head", "tail",
     "nrow",
