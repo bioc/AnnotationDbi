@@ -741,10 +741,6 @@ setMethod("mappedLkeys", "FlatBimap",
         unique(x@data[[match("Lkeyname", x@colmetanames)]])
 )
 
-### For an AgiAnnDbMap object (like silly maps ACCNUM and MULTIHIT in
-### ARABIDOPSISCHIP_DB), x@replace.single and x@replace.multiple will be
-### ignored, hence mappedLkeys(x) will give a wrong result.
-### But who cares, those maps are silly anyway...
 setMethod("mappedLkeys", "AnnDbBimap",
     function(x)
     {
@@ -767,6 +763,21 @@ setMethod("mappedLkeys", "Go3AnnDbBimap",
         keys2 <- getMappedKeys("CC")
         keys3 <- getMappedKeys("MF")
         unique(c(keys1, keys2, keys3))
+    }
+)
+
+### For an AgiAnnDbMap object (like silly maps ACCNUM and MULTIHIT in
+### ARABIDOPSISCHIP_DB), the "mappedLkeys" method for AnnDbBimap objects
+### would ignore the x@replace.single and x@replace.multiple slots leading
+### to a wrong result when one of those slots is NA.
+### But who cares, those maps are silly anyway...
+setMethod("mappedLkeys", "AgiAnnDbMap",
+    function(x)
+    {
+        if (length(map@replace.single) == 1 && is.na(map@replace.single)
+         || length(map@replace.multiple) == 1 && is.na(map@replace.multiple))
+            stop("mappedLkeys() is not available for this map")
+        callNextMethod(x)
     }
 )
 
