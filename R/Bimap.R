@@ -774,9 +774,10 @@ setMethod("mappedLkeys", "Go3AnnDbBimap",
 setMethod("mappedLkeys", "AgiAnnDbMap",
     function(x)
     {
-        if (length(map@replace.single) == 1 && is.na(map@replace.single)
-         || length(map@replace.multiple) == 1 && is.na(map@replace.multiple))
-            stop("mappedLkeys() is not available for this map")
+        if (length(x@replace.single) == 1 && is.na(x@replace.single)
+         || length(x@replace.multiple) == 1 && is.na(x@replace.multiple)) {
+            stop("mappedLkeys() is not available for map ", x@objName)
+        }
         callNextMethod(x)
     }
 )
