@@ -771,13 +771,17 @@ setMethod("mappedLkeys", "Go3AnnDbBimap",
 ### would ignore the x@replace.single and x@replace.multiple slots leading
 ### to a wrong result when one of those slots is NA.
 ### But who cares, those maps are silly anyway...
+mappedLkeysIsNotAvailable <- function(x)
+{
+    (length(x@replace.single) == 1 && is.na(x@replace.single)) ||
+      (length(x@replace.multiple) == 1 && is.na(x@replace.multiple))
+}
+
 setMethod("mappedLkeys", "AgiAnnDbMap",
     function(x)
     {
-        if (length(x@replace.single) == 1 && is.na(x@replace.single)
-         || length(x@replace.multiple) == 1 && is.na(x@replace.multiple)) {
+        if (mappedLkeysIsNotAvailable(x))
             stop("mappedLkeys() is not available for map ", x@objName)
-        }
         callNextMethod(x)
     }
 )
@@ -874,6 +878,15 @@ setMethod("count.mappedLkeys", "AnnDbBimap",
 
 setMethod("count.mappedLkeys", "Go3AnnDbBimap",
     function(x) length(mappedLkeys(x))
+)
+
+setMethod("count.mappedLkeys", "AgiAnnDbMap",
+    function(x)
+    {
+        if (mappedLkeysIsNotAvailable(x))
+            stop("count.mappedLkeys() is not available for map ", x@objName)
+        callNextMethod(x)
+    }
 )
 
 setMethod("count.mappedRkeys", "Bimap",

@@ -79,8 +79,8 @@ checkMAPCOUNTS <- function(pkgname)
         count0 <- MAPCOUNTS[mapname]
         cat("  - MAPCOUNTS[\"", mapname, "\"] = ", count0, "\n", sep="")
 
-        if (is(map, "AgiAnnDbMap") && length(map@replace.single) == 1 && is.na(map@replace.single)) {
-            ## because count.mappedkeys and mappedkeys are broken for silly map MULTIHIT
+        if (is(map, "AgiAnnDbMap") && mappedLkeysIsNotAvailable(map)) {
+            ## count.mappedkeys and mappedkeys are not available for silly map MULTIHIT
             cat("  - count1 = not available for this map ==> SKIPPED!\n")
             cat("  - count2 = not available for this map ==> SKIPPED!\n")
         } else {
