@@ -471,7 +471,7 @@ dbUniqueVals <- function(conn, tablename, colname, filter, datacache=NULL)
         vals <- as.character(vals)
     if (!is.null(SQLresultname)) {
         if (get("debugSQL", envir=RTobjs))
-            cat("[debugSQL] Putting SQL query and result in cache\n")
+            cat("[debugSQL] Putting last SQL query and result in cache\n")
         SQLresult <- list(SQL=SQL, result=vals)
         assign(SQLresultname, SQLresult, envir=datacache)
     }
@@ -547,7 +547,7 @@ dbUniqueMappedKeys <- function(conn, L2Rchain, Lkeys, Rkeys,
     vals <- .dbGetQuery(conn, SQL, 1)
     if (!is.null(SQLresultname)) {
         if (get("debugSQL", envir=RTobjs))
-            cat("[debugSQL] Putting SQL query and result in cache\n")
+            cat("[debugSQL] Putting last SQL query and result in cache\n")
         SQLresult <- list(SQL=SQL, result=vals)
         assign(SQLresultname, SQLresult, envir=datacache)
     }
