@@ -72,6 +72,63 @@ toSQLStringSet <- .toSQLStringSet       # an alias for export
         paste(colname, " IN (", .toSQLStringSet(names), ")", sep="")
 }
 
+splitInLots <- function(x, cumulmax)
+{
+    nchars <- nchar(x)
+    if (max(nchars) > cumulmax)
+        stop("'max(nchar(x))' is greater than 'cumulmax'")
+    cutat <- integer(0)
+    i <- 1L
+    while (i <= length(x)) {
+        cumul <- 0L
+        while (i <= length(x)) {
+            cumul <- cumul + nchars[i]
+            if (cumul > cumulmax)
+                break
+            i <- i + 1L
+        }
+        cutat <- c(cutat, i - 1L)
+    }
+    lots <- as.list(character(length(cutat)))
+    for (i in seq_len(length(cutat))) {
+        if (i == 1L)
+            i1 <- 1L
+        else
+            i1 <- cutat[i-1L] + 1L
+        i2 <- cutat[i]
+        lots[[i]] <- x[i1:i2]
+    }
+    lots
+}
+
+.toMultiSQLWhere <- function(colname, names)
+{
+    if (length(names) == 1 && is.na(names))
+        return(paste(colname, "IS NOT NULL"))
+    if (length(names) == 0)
+        return(list(""))
+    SQLstrings <- gsub(.SINGLE_QUOTE, .TWO_SINGLE_QUOTE, names, fixed=TRUE)
+    SQLstrings <- paste(.SINGLE_QUOTE, SQLstrings, .SINGLE_QUOTE, sep="")
+
+    MAXPARTLENGTH <- 9L
+    cumul <- diffinv(nchar(SQLstrings)+1L)[-1]
+    nparts <- as.integer(cumul[length(cumul)] / MAXPARTLENGTH) + 1L
+    if (nparts > 1L) {
+        length0 <- length(SQLstrings)
+        SQLstrings <- unique(SQLstrings)
+        if (length(SQLstrings) < length0) {
+            cumul <- diffinv(nchar(SQLstrings)+1L)[-1]
+            nparts <- as.integer(cumul[length(cumul)] / MAXPARTLENGTH) + 1L
+        }
+    }
+    parts <- as.list(character(nparts))
+    for (i in seq_len(nparts)) {
+        ii <- ((i-1) * MAXPARTLENGTH < cumul) & (cumul <= i * MAXPARTLENGTH)
+        parts[[i]] <- paste(SQLstrings[ii], collapse=",")
+    }
+    parts
+}
+
 
 ### - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ### L2Rlink/L2Rchain manipulation.
