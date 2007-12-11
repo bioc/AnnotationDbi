@@ -72,6 +72,26 @@ toSQLStringSet <- .toSQLStringSet       # an alias for export
         paste(colname, " IN (", .toSQLStringSet(names), ")", sep="")
 }
 
+getSmallSumEnds <- function(x, maxsum)
+{
+    ends <- integer(0)
+    i <- 1L
+    while (i <= length(x)) {
+        sum <- 0L
+        while (i <= length(x)) {
+            sum <- sum + x[i]
+            if (sum > maxsum)
+                break
+            i <- i + 1L
+        }
+        end <- i - 1L
+        if (end == ends[length(ends)])
+            stop("'max(x)' is greater than 'maxsum'")
+        ends <- c(ends, end)
+    }
+    ends
+}
+
 splitInLots <- function(x, cumulmax)
 {
     nchars <- nchar(x)
