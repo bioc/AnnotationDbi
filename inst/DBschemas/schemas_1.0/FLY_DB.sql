@@ -1,6 +1,6 @@
 --
--- HUMANCHIP_DB schema
--- ===================
+-- FLY_DB schema
+-- =============
 --
 
 -- The "genes" table is the central table.
@@ -10,20 +10,14 @@ CREATE TABLE genes (
 );
 
 -- Data linked to the "genes" table.
-CREATE TABLE probes (
-  probe_id VARCHAR(80) PRIMARY KEY,             -- manufacturer ID
-  accession VARCHAR(20) NULL,                   -- GenBank accession number
-  _id INTEGER NULL,                             -- REFERENCES genes
+CREATE TABLE accessions (
+  _id INTEGER NOT NULL,                         -- REFERENCES genes
+  accession VARCHAR(20) NOT NULL,               -- GenBank accession number
   FOREIGN KEY (_id) REFERENCES genes (_id)
 );
 CREATE TABLE alias (
   _id INTEGER NOT NULL,                         -- REFERENCES genes
   alias_symbol VARCHAR(80) NOT NULL,            -- gene symbol or alias
-  FOREIGN KEY (_id) REFERENCES genes (_id)
-);
-CREATE TABLE ensembl (
-  _id INTEGER NOT NULL,                         -- REFERENCES genes
-  ensembl_id VARCHAR(20) NOT NULL,              -- Ensembl Gene ID
   FOREIGN KEY (_id) REFERENCES genes (_id)
 );
 CREATE TABLE chromosomes (
@@ -33,7 +27,7 @@ CREATE TABLE chromosomes (
 );
 CREATE TABLE chromosome_locations (
   _id INTEGER NOT NULL,                         -- REFERENCES genes
-  seqname VARCHAR(20) NOT NULL,                 -- sequence name
+  seqname VARCHAR(20) NOT NULL,              	-- sequence name
   start_location INTEGER NOT NULL,
   FOREIGN KEY (_id) REFERENCES genes (_id)
 );
@@ -94,22 +88,15 @@ CREATE TABLE kegg (
   path_id CHAR(5) NOT NULL,                     -- KEGG pathway short ID
   FOREIGN KEY (_id) REFERENCES genes (_id)
 );
-CREATE TABLE omim (
+CREATE TABLE flybase (
   _id INTEGER NOT NULL,                         -- REFERENCES genes
-  omim_id CHAR(6) NOT NULL,                     -- OMIM ID
+  flybase_id CHAR(11) NOT NULL,                 -- FlyBase ID
   FOREIGN KEY (_id) REFERENCES genes (_id)
 );
-CREATE TABLE pfam (
-  _id INTEGER NOT NULL,                         -- REFERENCES genes
-  ipi_id CHAR(11) NOT NULL,                     -- IPI accession number
-  pfam_id CHAR(7) NULL,                         -- Pfam ID
-  FOREIGN KEY (_id) REFERENCES genes (_id)
-);
-CREATE TABLE prosite (
-  _id INTEGER NOT NULL,                         -- REFERENCES genes
-  ipi_id CHAR(11) NOT NULL,                     -- IPI accession number
-  prosite_id CHAR(7) NULL,                      -- PROSITE ID
-  FOREIGN KEY (_id) REFERENCES genes (_id)
+CREATE TABLE flybase_cg (
+  id INTEGER NOT NULL,                           -- REFERENCES genes
+  flybase_cg_id VARCHAR(10) NOT NULL,            -- FlyBase CG ID
+  FOREIGN KEY (id) REFERENCES genes (id)
 );
 CREATE TABLE pubmed (
   _id INTEGER NOT NULL,                         -- REFERENCES genes
@@ -152,7 +139,7 @@ CREATE TABLE map_metadata (
 -- Explicit index creation on the referencing column of all the foreign keys.
 -- Note that this is only needed for SQLite: PostgreSQL and MySQL create those
 -- indexes automatically.
-CREATE INDEX Fprobes ON probes (_id);
+CREATE INDEX Faccessions ON accessions (_id);
 CREATE INDEX Falias ON alias (_id);
 CREATE INDEX Fchromosomes ON chromosomes (_id);
 CREATE INDEX Fchromosome_locations ON chromosome_locations (_id);
@@ -165,9 +152,7 @@ CREATE INDEX Fgo_cc_all ON go_cc_all (_id);
 CREATE INDEX Fgo_mf ON go_mf (_id);
 CREATE INDEX Fgo_mf_all ON go_mf_all (_id);
 CREATE INDEX Fkegg ON kegg (_id);
-CREATE INDEX Fomim ON omim (_id);
-CREATE INDEX Fpfam ON pfam (_id);
-CREATE INDEX Fprosite ON prosite (_id);
+CREATE INDEX Fflybase ON flybase (_id);
 CREATE INDEX Fpubmed ON pubmed (_id);
 CREATE INDEX Frefseq ON refseq (_id);
 CREATE INDEX Funigene ON unigene (_id);
