@@ -1929,7 +1929,7 @@ appendAraCycEnzyme <- function(db, subStrs, printSchema){
 
   sql<- paste("
     INSERT INTO enzyme
-     SELECT g._id, a.ec_number
+     SELECT g._id, a.ec_name
      FROM ", subStrs[["cntrTab"]]," as g CROSS JOIN anno.enzyme as a
      WHERE g._id=a._id;
      ") 
