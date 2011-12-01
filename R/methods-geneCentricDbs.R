@@ -52,7 +52,9 @@
                       by=jointype, all=TRUE, suffixes = c("",""))
     }
   }
-  finTab[finTab[[jointype]] %in% keys,]
+  ## We do NOT want to to any actual row-filtering inside this method. It all
+  ## has to be done later, and after we have merged together requested data.
+  ## post filter means we filter LATER on and not while we are merging.
   finTab
 }
 
@@ -127,12 +129,15 @@
 ## requires that the names and cols be of the same length. Therefore, only
 ## primaryNames that are NOT NA can be passed down to here
 .nameExceptions <- function(names, cols){
-  if(length(names) != length(cols)){ return(names) }else{
+  if(length(names) != length(cols)){
+    warning("cols could not be renamed because length(names) != length(cols)")
+    return(names)
+  }else{
     newNames <- character(length(names))
     for(i in seq_len(length(cols))){
       newNames[[i]] <- switch(EXPR = names(names)[[i]],
                     "go_id" = "GO",
-                    "ipi_id" = ifelse(cols[[i]]=="PFAM","PFAM","PROSITE"),
+                    "ipi_id" = ifelse(cols[[i]]=="PFAM","IPI","IPI"),
                     "accession" = ifelse(cols[[i]]=="ACCNUM","ACCNUM","REFSEQ"),
                     names[[i]])
     }
@@ -141,24 +146,40 @@
   }
 }
 
-.addNAsInPlace <- function(names, cols){
-  res <- character(length(names))
-  ## loop needs two counters
-  colsPlace <- 1
-  for(i in seq_len(length(names))){
-    if(!is.na(names)[i]){
-      res[i] <- cols[colsPlace]
-      colsPlace <- colsPlace + 1
+## this just loops through the cols and discovers which ones need extra
+## padding then it makes a new "cols" that has NAs where they will be needed.
+## If I use this, replace .makeBimapsFromStrings with a one row version of
+## same for speedup
+.addNAsInPlace <- function(x, names, cols){
+  res <- character()
+  for(i in seq_len(length(cols))){
+    ## 1st get the number of cols associated
+    if(!cols[i] %in%  c("ENTREZID","GOID","PROBEID")){
+      obj <- .makeBimapsFromStrings(x, cols[i])[[1]]
+      colLen <- dim(toTable(obj[1]))[2] #fast
+      localCNs <- colnames(toTable(obj[1]))
+      duplevel <- length(localCNs) - length(unique(localCNs))
+      ## Check to see if any colnames are repeating?
+      if(colLen > 2 && duplevel==0){
+        ## then add some NAs
+        res <- c(res, cols[i], rep(NA, times=colLen-2))
+      }
+      else if(colLen > 2 && duplevel>0){
+        ## then add fewer NAs
+        res <- c(res, cols[i], rep(NA, times=(colLen-2-duplevel)))
+      }else{## don't add NAs
+        res <- c(res, cols[i])
+      }
     }else{
-      res[i] <- names[i]
+      res <- c(res, cols[i])
     }
   }
   res
 }
 
-.selectivelyMatchNameExceptions <- function(names, cols){
+.selectivelyMatchNameExceptions <- function(x, names, cols){
   ## 1st we ADD NAs to the cols (in the same places as the oriNames)
-  modCols <- .addNAsInPlace(names, unique(cols))
+  modCols <- .addNAsInPlace(x, names, unique(cols))
   ## Then call method to selectively replace names with original col names.
   .nameExceptions(names, modCols)
 }
@@ -169,8 +190,8 @@
   fcNames <- .swapSymbolExceptions(x, fcNames)
   secondaryNames <- colnames(res)
   primaryNames <- fcNames[match(colnames(res), names(fcNames))]
-  ## selectively replace certain problematic secondaryNames 
-  primaryNames <- .selectivelyMatchNameExceptions(primaryNames, oriCols)
+  ## replace problematic names by using original cols requests 
+  primaryNames <- .selectivelyMatchNameExceptions(x, primaryNames, oriCols)
   
   ## merge two name types giving preference to primary
   colNames <- character()
@@ -186,7 +207,7 @@
   colNames
 }
 
-## Remove unwanted ID cols  TODO: make this code a helper
+## Remove unwanted ID cols  
 ## We only want to drop columns that really are "adds"
 .cleanOutUnwantedCols <- function(x, res, keytype, oriCols){
   blackList <- unique(c(keytype, "ENTREZID","PROBEID"))
@@ -401,7 +422,7 @@ setMethod("cols", "GODb",
   ## make a bimap from the keytype
   map <- .makeBimapsFromStrings(x, keytype)[[1]] ## there is only ever one.
   ## then get the Rkeys
-  Rkeys(map) 
+  Rkeys(map)
 }
 
 .makeKeytypeChoice <- function(x, keytype){
@@ -545,7 +566,7 @@ setMethod("keytypes", "GODb",
 
 
 ## works now
-## library(org.Hs.eg.db);keys2 = head(Rkeys(org.Hs.egALIAS2EG));cols = c("SYMBOL","ENTREZID", "GO");res <- select(org.Hs.eg.db, keys2, cols, keytype="ALIAS");
+## library(org.Hs.eg.db);keys2 = head(Rkeys(org.Hs.egALIAS2EG));cols = c("SYMBOL","ENTREZID", "GO");res <- select(org.Hs.eg.db, keys2, cols, keytype="ALIAS")
 
 ## works now
 ## keys = head(keys(org.Hs.eg.db)); cols = c("SYMBOL","ENTREZID", "GO");res <- select(org.Hs.eg.db, keys, cols, keytype="ENTREZID")
