@@ -243,13 +243,6 @@ setClass("KEGGFrame", contains="AnnotFrame",
 .AnnotationDb <-
     setRefClass("AnnotationDb",
         fields=list(conn="SQLiteConnection", packageName="character"),
-        methods=list(
-          initialize=function(..., sqliteFile) {
-              .conn <-
-                  if (missing(sqliteFile)) dbConnect(SQLite())
-                  else dbConnect(SQLite(), sqliteFile)
-              callSuper(..., conn=.conn)
-          })
 )
 
 .OrgDb <-
