@@ -12,11 +12,11 @@
 require(org.Hs.eg.db)
 require(GO.db)
 require(hgu95av2.db)
+require("RUnit")
 x <- org.Hs.eg.db
 cols <- c("CHR","PFAM","GO")
 keys <- c(1,10)
 jointype <- "gene_id"
-
 
 test_getObjList <- function(){
   res <- AnnotationDbi:::.getObjList(x)
@@ -151,21 +151,64 @@ test_cleanupBaseTypesFromCols <- function(){
 }
 
 
-## This one is really important as it is generic enough to be reused elsewhere.
+test_locateUsingAdjID <- function(){
+  cols <- c("ALIAS2EG","SYMBOL","ENTREZID","REFSEQ","ACCNUM")
+  indCol <- 3 ## 3rd element is the Primary key for cols
+  res <- c("gene_id","alias_symbol","gene_id","symbol","gene_id","gene_id",
+           "gene_id","accession","gene_id","accession")
+  pkeycol <- "gene_id"
+  exp <- c("alias_symbol","symbol","gene_id","accession","accession")
+  res2 <- AnnotationDbi:::.locateUsingAdjID(x, res, cols, indCol, pkeycol)
+  checkIdentical(exp,res2)
+}
+
+test_getDBHeaderCols <- function(){
+  cols <- c("ENTREZID","CHRLOC","PFAM","GO")
+  res <- AnnotationDbi:::.getDBHeaderCols(x,cols)
+  exp <- c("gene_id","start_location","Chromosome" ,"ipi_id","PfamId",
+           "go_id","Evidence","Ontology")
+  checkIdentical(exp,res)
+}
+
+
+## resort and friends are really important as they are generic enough to
+## be reused elsewhere.
+test_generateExtraRows <- function(){
+  ttab = data.frame(warpbreaks[1:10,])
+  tkeys = ttab$breaks
+  tkeys = c(26, tkeys[1:7], tkeys[7], 30, tkeys[8:10], tkeys[10])
+  res <- AnnotationDbi:::.generateExtraRows(ttab, tkeys, jointype)
+  checkTrue(length(tkeys) == dim(res)[1])
+}
+
 test_resort <- function(){
   cols <- c("CHR","SYMBOL", "PFAM")
   objs <- AnnotationDbi:::.makeBimapsFromStrings(x, cols=cols)
   res <- AnnotationDbi:::.mergeBimaps(objs, keys, jointype)
   ## jumble res to simulate trouble
   resRO = res[order(sort(res$gene_id,decreasing=TRUE)),]
-  oriCols <- c("ENTREZID","CHR","SYMBOL","PFAM")
-  Rres <- AnnotationDbi:::.resort(resRO, keys, jointype)
+  reqCols <- c("gene_id","chromosome","symbol","ipi_id","PfamId")
+  Rres <- AnnotationDbi:::.resort(resRO, keys, jointype, reqCols)
   checkIdentical(Rres$gene_id,Rres$gene_id)
+  checkTrue(class(Rres) =="data.frame")
+
+  ## now what if we have MORE keys?
+  keys <- c(1, keys, keys)
+  cols <- c("CHR","SYMBOL")
+  objs <- AnnotationDbi:::.makeBimapsFromStrings(x, cols=cols)
+  res <- AnnotationDbi:::.mergeBimaps(objs, keys, jointype)
+  reqCols <- c("gene_id","chromosome","symbol")
+  res2 <- AnnotationDbi:::.resort(res, keys, jointype, reqCols)
+  checkIdentical(as.numeric(as.character(res2$gene_id)),keys)
+  checkTrue(class(res) =="data.frame")
 }
+
+
 
 test_keys <- function(){
   checkException(keys(org.Hs.eg.db, keytype="PROBEID"))
 }
+
 
 ## This one to test out some real use cases...
 test_select <- function(){
@@ -174,7 +217,7 @@ test_select <- function(){
   res <- select(hgu95av2.db, keys, cols, keytype="ALIAS")
   checkTrue(dim(res)[1]>0)
   checkTrue(dim(res)[2]==4)
-  checkIdentical(c("ALIAS","PROBEID","SYMBOL","ENTREZID"), colnames(res))
+  checkIdentical(c("ALIAS","SYMBOL","ENTREZID","PROBEID"), colnames(res))
 
   keys <- head(keys(org.Hs.eg.db),n=2)
   cols <- c("PFAM","ENTREZID", "GO")
@@ -208,9 +251,23 @@ test_select <- function(){
   checkIdentical(c("GO","Term","Ontology","Definition","Synonym",
                    "Secondary"), colnames(res))
   
-
   ## bad keys should result in failure
-  keys = head(keys(hgu95av2.db))
-  cols = c("SYMBOL","ENTREZID", "GO")
+  keys <- head(keys(hgu95av2.db))
+  cols <- c("SYMBOL","ENTREZID", "GO")
   checkException(select(hgu95av2.db, keys, cols, keytype="ENTREZID"))
+  
+  ## What if the keys are goofy (we want to test the row-wise "auto-expand")
+  cols <- c("SYMBOL","ENTREZID") ## 1st of all cols should be 1:1 cols
+  keys <- head(keys(org.Hs.eg.db),n=3)
+  keys <- c(1, keys, keys)
+  res <- select(org.Hs.eg.db, keys, cols)
+  checkTrue(class(res) =="data.frame")
+  checkIdentical(keys, as.character(t(res$ENTREZID)))
+  
+  ## What if there is only one col?
+  cols <- c("ENTREZID")
+  res <- select(org.Hs.eg.db, keys, cols)
+  checkTrue(class(res) =="data.frame")
+  checkTrue(dim(res)[2] ==1)  
+  checkIdentical(keys, as.character(t(res$ENTREZID)))
 }

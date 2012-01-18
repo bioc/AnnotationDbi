@@ -23,7 +23,7 @@
 ## 1st a helper to remove any pre-existing col duplicates from bimaps.
 .toTableAndCleanCols <- function(map){
   tab <- toTable(map)
-  tab[,!duplicated(colnames(tab))]
+  tab[,!duplicated(colnames(tab)),drop=FALSE]
 }
 
 .mergeBimaps <- function(objs, keys, jointype){
@@ -230,38 +230,164 @@
   cols
 }
 
-## Helper for tidying up the final table.
+
+###############################################################################
+## AnnotationDbi specific col sorting helpers
+
+## These helpers are needed just be AnnotationDbi org packages to help get the
+## table headers in an order that we actually want to return to users.
+.getAdjID <- function(x, adjacent, offset, pkeycol, res){
+      indColAdj <- match(adjacent, .getAllColAbbrs(x))
+      specificColsStr <- names(.getAllColAbbrs(x)[indColAdj])
+      indKeeper <- match(specificColsStr, res) + offset ## correct index
+      indRem <- grep(pkeycol, res) ## list all pkey matches
+      indRem <- indRem[indRem!=indKeeper] ## we still have to keep indKeeper
+      res <- res[!(seq_len(length(res)) %in% indRem)] ## drop the others.
+      res
+}
+## tries to find a way to resolve which of the primary keys is the one we want
+## to keep
+.locateUsingAdjID <- function(x, res, cols,indCol, pkeycol){
+  if(length(cols) > 1 && indCol > 1){ 
+    indAdj <- indCol - 1
+    adjacent <- cols[indAdj]
+    if(!duplicated(cols[cols %in% adjacent])){
+      res <- .getAdjID(x, adjacent, offset=1, pkeycol, res)
+    }else{stop("Too many repetitive keys")}
+  }else if(length(cols) > 1 && indCol == 1){
+    indAdj <- indCol + 1
+    adjacent <- cols[indAdj]
+    if(!duplicated(cols[cols %in% adjacent])){
+      res <- .getAdjID(x, adjacent, offset=-1, pkeycol, res)
+    }else{stop("Too many repetitive keys")}
+  }else if (length(cols)==1){
+    res <- res
+  }
+  res
+}
+
+.getDBHeaderCols <- function(x, cols){
+  res <- character()
+  for(i in seq_len(length(cols))){
+    ## 1st get the number of cols associated
+    if(!cols[i] %in%  c("ENTREZID","GOID","PROBEID")){
+      obj <- .makeBimapsFromStrings(x, cols[i])[[1]]
+      localCNs <- colnames(toTable(obj[1]))
+      res <- c(res, localCNs)
+    }else{
+      localCNs <- switch(cols[i],
+                         "ENTREZID"="gene_id",
+                         "GOID"="go_id",
+                         "PROBEID"="probe_id")
+      res <- c(res, localCNs)
+    }
+  }
+  ## I can't just use unique here.  Because primary keys must be in the proper
+  ## location in the result vector.  The primary key is the one that is both
+  ## duplicated AND is in the 1st element.
+  if(res[[1]] %in% res[duplicated(res)]){
+    pkeycol <- res[[1]]
+  }else{stop("Cannot deduce primary key column.")}
+
+  indPkey <- match(pkeycol, names(.getAllColAbbrs(x)))
+  pkCapsName <- .getAllColAbbrs(x)[indPkey]
+  indPkeyCol <- match(pkCapsName, cols)
+  if(is.na(indPkeyCol)){
+    ## This meanns that the primary key needs to be removed ENTIRELY.
+    res <- res[!(seq_len(length(res)) %in% grep(pkeycol, res))]
+    ## Weird exception for GO ONLY (b/c with GO you implicitly want the keys)
+    if(pkeycol=="go_id"){res <- c("go_id",res)}
+  }else{
+    ## I can't use pkeycol because there is more than one of these SO
+    ## I need a solution like the following that will get a specific ID
+    res <- .locateUsingAdjID(x, res, cols, indCol=indPkeyCol, pkeycol)
+  }
+  res
+}
+
+
+###############################################################################
+## Helpers for tidying up the final table.
 ## .resort drops unwanted rows, rearanges cols and puts things into order that
 ## the keys were initially
-.resort <- function(tab, keys, jointype){
+
+## drop rows that don't match
+.dropUnwantedRows <- function(tab, keys, jointype){
   ## 1st of all jointype MUST be in the colnames of tab
   tab <- unique(tab)  ## make sure no rows are duplicated
   rownames(tab) <- NULL ## reset the rownames (for matching below)
-  if(jointype %in% colnames(tab)){
-    ## This row-level uniqueness is required for match() below
-    ## first find keys that will never match up and add rows for them
-    noMatchKeys <- keys[!(keys %in% tab[[jointype]])]
-    for(i in seq_len(length(noMatchKeys))){
-      row <- rep(NA, dim(tab)[2])
-      row[colnames(tab) %in% jointype] <- noMatchKeys[i]
-      tab <- rbind(tab,row)
-    }
-  
-    ## match up and filter out rows that don't match.
-    ind = match(tab[[jointype]],keys)
-    names(ind) = as.numeric(rownames(tab)) ## step REQUIRES good rownames
-    tab <- tab[as.numeric(names(sort(ind))),,drop=FALSE]
-    
-    ## rearrange to make sure our jointab col is on the left
-    cnames <- c(jointype, colnames(tab)[!(colnames(tab) %in% jointype)])
-    tab <- data.frame(tab[[jointype]],
-                      tab[,!(colnames(tab) %in% jointype)])
-    ## reset the table rownames and colnames
-    colnames(tab) <- cnames
+  ## This row-level uniqueness is required for match() below
+  ## first find keys that will never match up and add rows for them
+  noMatchKeys <- keys[!(keys %in% tab[[jointype]])]
+  for(i in seq_len(length(noMatchKeys))){
+    row <- rep(NA, dim(tab)[2])
+    row[colnames(tab) %in% jointype] <- noMatchKeys[i]
+    tab <- rbind(tab,row)
   }
-  rownames(tab) <- NULL
+  
+  ## match up and filter out rows that don't match.
+  ind = match(tab[[jointype]],keys)
+  names(ind) = as.numeric(rownames(tab)) ## step REQUIRES good rownames
+  tab <- tab[as.numeric(names(sort(ind))),,drop=FALSE]
   tab
 }
+
+## resort the Column Names
+.resortColumns <- function(tab, jointype, reqCols){
+  ## TODO: include better handling of suffixes introduced by merge...
+  colnames(tab) <- gsub(".1","",colnames(tab))  ## Removes duplicate suffixes.
+  
+  if(all(colnames(tab) %in% reqCols)){  ## this might be too stringent...
+    cnames <- c(jointype, reqCols[!(reqCols %in% jointype)])
+    indc <- match(cnames, colnames(tab))
+    tab <- tab[,indc,drop=FALSE]
+    colnames(tab) <- cnames
+  }else{stop("Some of the reqCols are not in the table (colnames(tab)).")}
+  tab
+}
+
+## Create extra rows
+## TODO: there are still problems here.
+## I have issues where I drop rows from tables that have extra rows of real
+## info. while tring to match to the keys.
+.generateExtraRows <- function(tab, keys, jointype){
+  ## 4 possibilities
+  ## if there are not dups, then we skip this function.
+  ## if(any(duplicated(keys)) ## then we have to expand the keys
+  ## if(any(duplicated(tab[[jointype]]))) ## then we have to expand the table...
+  ## AND if they are BOTH redundant how do I decide which row to expand?
+  ## I think that I have to throw a warning and NOT do this step in that case?
+  keyTest <- any(duplicated(keys))
+  rowTest <-  any(duplicated(tab[[jointype]]))             
+  if(!keyTest && !rowTest){ ## already the same - nothing to do
+    tab<-tab
+  }else if(keyTest && !rowTest){ ## Need to account for row dups
+    ind = match(keys, tab[[jointype]])
+    tab <- tab[ind,,drop=FALSE]
+    rownames(tab) <- NULL
+  }else if(!keyTest && !rowTest){ ## Need to account for data dups
+    warning("The data you have requested can only be expressed by duplicating some of the keys you requested.  Some of your keys may appear multiple times in the output")
+    tab<-tab
+  }else if(keyTest && rowTest){ ## Hands in air. - User will get data "as is"
+    warning("The data you have requested can only be expressed by duplicating some of the keys you requested.  Furthermore, it also appears that you have given us some of your keys multiple times.  Normally we would duplicate those rows for you, but this time we can't because of the existing redundancy in the data you have requested.")
+    tab<-tab
+  }
+  tab
+}
+
+## .resort is the main function for cleaning up a table so that results look
+## formatted the way we want them to.
+.resort <- function(tab, keys, jointype, reqCols){
+  if(jointype %in% colnames(tab)){
+    tab <- .dropUnwantedRows(tab, keys, jointype)
+    ## rearrange to make sure cols are in correct order
+    tab <- .resortColumns(tab, jointype, reqCols)
+  }
+  ## Duplicate any rows as appropriate (based on those keys)
+  tab <- .generateExtraRows(tab, keys, jointype)
+  tab
+}
+
 
 ## Fresh start.  I need to NOT do this as a double merge
 .select <- function(x, keys=NULL, cols=NULL, keytype, jointype){
@@ -277,16 +403,24 @@
   ktKeys = keys(x, keytype=keytype)
   if(!(any(ktKeys %in% keys))){
     stop("keys must be of the same keytype as the actual keytype")
-  }  
+  }
   ## translate any cute colnames or keytype names back to bimaps
   cols <- .swapSymbolExceptions(x, cols)
   keytype <- .swapSymbolExceptions(x, keytype)
   ## oriCols is a snapshot of col requests needed for column filter below
-  oriCols <- c(keytype, cols) 
+  oriCols <- unique(c(keytype, cols))
 
+  ## All this because I need to account for the cols that "expand"
+  ## I really do need a new helper here
+  oriTabCols <- .getDBHeaderCols(x, oriCols)
+  
   ## now drop a value from cols before we try to make any bimaps
   cols <- .cleanupBaseTypesFromCols(x, cols)
-  ## then filter any NAs from the keys
+  ## keys should NOT be NAs, but if they are, warn and then filter them.
+  if(length(keys) != length(keys[!is.na(keys)])){
+    warning(paste("You cannot really use NA values as keys.",
+                  "All such keys will be dropped for you and the",
+                  "results will be correspondingly smaller."))}
   keys <- keys[!is.na(keys)]
 
   if(keytype %in% c("ENTREZID","PROBEID","GOID") &&
@@ -303,13 +437,14 @@
     jointype <- .getRKeyName(x, keytype)
   }
   
-  ## .resort will resort the rows relative to the jointype etc.
-  if(dim(res)[1]>0){
-    res <- .resort(res, keys, jointype)
-  }
-  
   ## this takes a black list approach for cleaning out unwanted cols
   res <- .cleanOutUnwantedCols(x, res, keytype, oriCols)
+
+  ## .resort will resort the rows relative to the jointype etc.
+  if(dim(res)[1]>0){
+    res <- .resort(res, keys, jointype, oriTabCols)
+  }
+  
   
   ## rename col headers, BUT if they are not returned by cols, then we have to
   ## still keep the column name (but adjust it)
