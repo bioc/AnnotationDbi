@@ -623,17 +623,25 @@ setMethod("keys", "GODb",
 ## passed in to either keys or the select methods.
 ## temporarily:this method will be VERY unsophisticated.
 
+keytypesBlackList <- c("CHRLOCEND","CHRLOC","PFAM","PROSITE")
+.filterKeytypes <- function(x, baseType, keytypesBlackList){
+  res <- .cols(x, baseType=baseType)
+  res <- res[!res %in% keytypesBlackList]
+  res
+}
+
 setMethod("keytypes", "OrgDb",
-    function(x) .cols(x, baseType="ENTREZID")
+    function(x) .filterKeytypes(x, baseType="ENTREZID", keytypesBlackList)
 )
 
 setMethod("keytypes", "ChipDb",
-    function(x) .cols(x, baseType="PROBEID") 
+    function(x) .filterKeytypes(x, baseType="PROBEID", keytypesBlackList) 
 )
 
 setMethod("keytypes", "GODb",
     function(x) return("GOID") ## only one type makes sense
 )
+
 
 
 
