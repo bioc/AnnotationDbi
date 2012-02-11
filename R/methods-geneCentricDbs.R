@@ -4,6 +4,16 @@
                        "SELECT value FROM metadata WHERE name='CENTRALID'"))
 }
 
+## Sometimes we need to translate a centralID into a central keytype.
+.chooseCentralOrgPkgSymbol <- function(x){
+  centralID <- .getCentralID(x)
+  keytype <- switch(EXPR = centralID,
+                    "EG" = "ENTREZID",
+                    "TAIR" = "TAIR",
+                    "ORF" = "ORF")
+  keytype
+}
+
 ## Select Methods return the results from looking up things (cols) that match
 ## the keys provided.  cols is a character vector to specify columns the user
 ## wants back and keys are the keys to look up.
@@ -32,6 +42,15 @@
   tab[,!duplicated(colnames(tab)),drop=FALSE]
 }
 
+.filterSuffixes <- function(tab){
+  ## clean up .x and .y extensions?
+  colnames(tab) <- gsub("\\.x","",colnames(tab))
+  colnames(tab) <- gsub("\\.y","",colnames(tab))
+  ## clean up .1's
+  colnames(tab) <- gsub("\\.1","",colnames(tab))  
+  tab
+}
+
 .mergeBimaps <- function(objs, keys, jointype){
   for(i in seq_len(length(objs))){
     if(i==1){
@@ -41,9 +60,10 @@
       nextTab <- .toTableAndCleanCols(objs[[i]])
       nextTab <- nextTab[nextTab[[jointype]] %in% keys,]
       finTab <- merge(finTab, nextTab,
-                      by=jointype, all=TRUE, suffixes = c("",""))
+                      by=jointype, all=TRUE)
     }
   }
+  finTab <- .filterSuffixes(finTab)
   finTab
 }
 
@@ -55,12 +75,13 @@
     }else{
       nextTab <- .toTableAndCleanCols(objs[[i]])
       finTab <- merge(finTab, nextTab,
-                      by=jointype, all=TRUE, suffixes = c("",""))
+                      by=jointype, all=TRUE)
     }
   }
   ## We do NOT want to to any actual row-filtering inside this method. It all
   ## has to be done later, and after we have merged together requested data.
   ## post filter means we filter LATER on and not while we are merging.
+  finTab <- .filterSuffixes(finTab)
   finTab
 }
 
@@ -122,7 +143,8 @@
 ## Another Helper for getting all possible short mapping names for salient cols
 .getAllColAbbrs <- function(x){
   cols <- .makeColAbbrs(x)## unique strips off the name so we loop.  :(
-  maybeMissing = c(probe_id="PROBEID", gene_id="ENTREZID")
+  maybeMissing = c(probe_id="PROBEID", gene_id="ENTREZID",
+                   gene_id="TAIR", systematic_name="ORF")
   for(i in seq_len(length(maybeMissing))){
     if(!maybeMissing[i] %in% cols){
        cols <- c(cols,maybeMissing[i])
@@ -145,6 +167,7 @@
                     "go_id" = "GO",
                     "ipi_id" = ifelse(cols[[i]]=="PFAM","IPI","IPI"),
                     "accession" = ifelse(cols[[i]]=="ACCNUM","ACCNUM","REFSEQ"),
+                    "gene_id" = ifelse(cols[[i]]=="ENTREZID","ENTREZID","TAIR"),
                     names[[i]])
     }
     names(newNames) <- names(names)
@@ -160,7 +183,7 @@
   res <- character()
   for(i in seq_len(length(cols))){
     ## 1st get the number of cols associated
-    if(!cols[i] %in%  c("ENTREZID","GOID","PROBEID")){
+    if(!cols[i] %in%  c("ENTREZID","GOID","PROBEID","TAIR","ORF")){
       obj <- .makeBimapsFromStrings(x, cols[i])[[1]]
       colLen <- dim(toTable(obj[1]))[2] #fast
       localCNs <- colnames(toTable(obj[1]))
@@ -191,7 +214,7 @@
 }
 
 .renameColumnsWithRepectForExtras <- function(x, res, oriCols){
-  colnames(res) <- gsub(".1","",colnames(res))  ## Removes duplicate suffixes.
+  res <- .filterSuffixes(res) ## Removes duplicate suffixes
   fcNames <- .getAllColAbbrs(x)
   fcNames <- .swapSymbolExceptions(x, fcNames)
   secondaryNames <- colnames(res)
@@ -216,7 +239,11 @@
 ## Remove unwanted ID cols  
 ## We only want to drop columns that really are "adds"
 .cleanOutUnwantedCols <- function(x, res, keytype, oriCols){
-  blackList <- unique(c(keytype, "ENTREZID","PROBEID"))
+  centralID <- .getCentralID(x)
+  blackList <- switch(EXPR = centralID,
+                      "ENTREZID" = unique(c(keytype, "ENTREZID","PROBEID")),
+                      "ORF" = unique(c(keytype, "ORF","PROBEID")),
+                      "TAIR" = unique(c(keytype, "TAIR","PROBEID")) )
   blackList <- blackList[!(blackList %in% oriCols)]
   fcNames <- .getAllColAbbrs(x)
   smBlackList <- names(fcNames)[fcNames %in% blackList]
@@ -228,7 +255,8 @@
 ## contain things that cannot really be made into bimaps
 .cleanupBaseTypesFromCols <- function(x, cols){
   if(class(x)=="OrgDb"){
-    cols <- cols[!(cols %in% "ENTREZID")]
+    centralSymbol <- .chooseCentralOrgPkgSymbol(x)
+    cols <- cols[!(cols %in% centralSymbol)]
   }
   if(class(x)=="ChipDb"){
     cols <- cols[!(cols %in% "PROBEID")]
@@ -276,7 +304,7 @@
   res <- character()
   for(i in seq_len(length(cols))){
     ## 1st get the number of cols associated
-    if(!cols[i] %in%  c("ENTREZID","GOID","PROBEID")){
+    if(!cols[i] %in%  c("ENTREZID","GOID","PROBEID","TAIR","ORF")){
       obj <- .makeBimapsFromStrings(x, cols[i])[[1]]
       localCNs <- colnames(toTable(obj[1]))
       res <- c(res, localCNs)
@@ -284,7 +312,9 @@
       localCNs <- switch(cols[i],
                          "ENTREZID"="gene_id",
                          "GOID"="go_id",
-                         "PROBEID"="probe_id")
+                         "PROBEID"="probe_id",
+                         "TAIR"="gene_id",
+                         "ORF"="systematic_name")
       res <- c(res, localCNs)
     }
   }
@@ -294,11 +324,10 @@
   if(res[[1]] %in% res[duplicated(res)]){
     pkeycol <- res[[1]]
   }else{stop("Cannot deduce primary key column.")}
-
-  indPkey <- match(pkeycol, names(.getAllColAbbrs(x)))
-  pkCapsName <- .getAllColAbbrs(x)[indPkey]
+  pkCapsName <- .getAllColAbbrs(x)[names(.getAllColAbbrs(x)) %in% pkeycol]
   indPkeyCol <- match(pkCapsName, cols)
-  if(is.na(indPkeyCol)){
+  indPkeyCol <- indPkeyCol[!is.na(indPkeyCol)]
+  if(length(indPkeyCol)==0){
     ## This meanns that the primary key needs to be removed ENTIRELY.
     res <- res[!(seq_len(length(res)) %in% grep(pkeycol, res))]
     ## Weird exception for GO ONLY (b/c with GO you implicitly want the keys)
@@ -340,9 +369,7 @@
 
 ## resort the Column Names
 .resortColumns <- function(tab, jointype, reqCols){
-  ## TODO: include better handling of suffixes introduced by merge...
-  colnames(tab) <- gsub(".1","",colnames(tab))  ## Removes duplicate suffixes.
-  
+  tab <- .filterSuffixes(tab) ## Removes duplicate suffixes
   if(all(colnames(tab) %in% reqCols)){  ## this might be too stringent...
     cnames <- c(jointype, reqCols[!(reqCols %in% jointype)])
     indc <- match(cnames, colnames(tab))
@@ -351,6 +378,15 @@
   }else{stop("Some of the reqCols are not in the table (colnames(tab)).")}
   tab
 }
+
+## helper to remove any columns that are true duplicates
+.dropDuplicatedCols <- function(tab){
+  cols <- colnames(tab)
+  cols <- cols[!duplicated(cols)]  
+  tab <- tab[,cols]
+  tab
+}
+
 
 ## Create extra rows
 ## TODO: there are still problems here.
@@ -429,7 +465,7 @@
                   "results will be correspondingly smaller."))}
   keys <- keys[!is.na(keys)]
 
-  if(keytype %in% c("ENTREZID","PROBEID","GOID") &&
+  if(keytype %in% c("ENTREZID","PROBEID","GOID","TAIR","ORF") &&
      !(keytype %in% "ENTREZID" && class(x)=="ChipDb")){
     objs <- .makeBimapsFromStrings(x, cols)
     res <-.mergeBimaps(objs, keys, jointype=jointype)
@@ -451,10 +487,16 @@
     res <- .resort(res, keys, jointype, oriTabCols)
   }
   
-  
   ## rename col headers, BUT if they are not returned by cols, then we have to
   ## still keep the column name (but adjust it)
   colnames(res) <- .renameColumnsWithRepectForExtras(x, res, oriCols)
+
+  ## This last step removes unwanted column duplicates.  As much as I would like
+  ## to, I CANNOT do this step inside of .resort(), because .resort() is
+  ## dealing only with the actual db-style column names that will sometimes
+  ## have (at least for AnnotationDbi) have legitimate duplications that we do
+  ## NOT want to remove. 
+  res <- .dropDuplicatedCols(res)
   res
 }
 
@@ -464,7 +506,9 @@
 
 setMethod("select", "OrgDb",
     function(x, keys, cols, keytype) {
-          if (missing(keytype)) keytype <- "ENTREZID"
+          if (missing(keytype)){
+            keytype <- .chooseCentralOrgPkgSymbol(x)
+          }
           .select(x, keys, cols, keytype, jointype="gene_id")
         }
 )
@@ -506,13 +550,6 @@ setMethod("select", "GODb",
 ## cols methods return the list of things that users can ask for.  This can be
 ## just the table names, or it might be a list of mappings
 
-.chooseCentralOrgPkgSymbol <- function(centralID){
-  keytype <- switch(EXPR = centralID,
-                    "EG" = "ENTREZID",
-                    "TAIR" = "TAIR",
-                    "ORF" = "ORF")
-  keytype
-}
 
 .cols <- function(x, baseType){
   cols <- .makeColAbbrs(x)
@@ -530,8 +567,7 @@ setMethod("select", "GODb",
 
 setMethod("cols", "OrgDb",
     function(x){
-      centralID <- .getCentralID(x)
-      baseType <- .chooseCentralOrgPkgSymbol(centralID)
+      baseType <- .chooseCentralOrgPkgSymbol(x)
       .cols(x, baseType)
     }
 )
@@ -618,8 +654,7 @@ setMethod("cols", "GODb",
 setMethod("keys", "OrgDb",
     function(x, keytype){
       if(missing(keytype)){
-        centralID <- .getCentralID(x)
-        keytype <- .chooseCentralOrgPkgSymbol(centralID)
+        keytype <- .chooseCentralOrgPkgSymbol(x)
       }
       .makeKeytypeChoice(x, keytype)
     }
@@ -657,6 +692,9 @@ setMethod("keys", "GODb",
 ## passed in to either keys or the select methods.
 ## temporarily:this method will be VERY unsophisticated.
 
+## TODO: would like to find a way to restore these blacklisted types to being
+## able to be used, but I need a way around the lack of an Rkeys() method etc.
+
 keytypesBlackList <- c("CHRLOCEND","CHRLOC","PFAM","PROSITE",
                        "DESCRIPTION", "GENENAME")
 .filterKeytypes <- function(x, baseType, keytypesBlackList){
@@ -680,7 +718,6 @@ setMethod("keytypes", "ChipDb",
 setMethod("keytypes", "GODb",
     function(x) return("GOID") ## only one type makes sense
 )
-
 
 
 
@@ -813,3 +850,10 @@ setMethod("keytypes", "GODb",
 ## debug(AnnotationDbi:::.nameExceptions)
 ## debug(AnnotationDbi:::.addNAsInPlace)
 
+
+
+
+## Requirements for having a select method that works and plays well with
+## others:
+## 1) Use the same arguments for the method (obvious)
+## 2) remove dulicated columns.
