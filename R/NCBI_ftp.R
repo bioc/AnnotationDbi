@@ -699,6 +699,7 @@ makeOrgPackageFromNCBI <- function(version,
   ## is always created in ".". Maybe that could be revisited.
   makeOrgDbFromNCBI(tax_id=tax_id, genus=genus, species=species)
   
+  dbName <- .generateOrgDbName(genus,species)  
   seed <- new("AnnDbPkgSeed",
               Package= paste(dbName,".db",sep=""),
               Version=version,
@@ -713,9 +714,7 @@ makeOrgPackageFromNCBI <- function(version,
               manufacturer = "no manufacturer",
               chipName = "no manufacturer")
 
-  dbName <- .generateOrgDbName(genus,species)
-  dbfile <- paste(dbName, ".sqlite", sep="")
-  
+  dbfile <- paste(dbName, ".sqlite", sep="")  
   makeAnnDbPkg(seed, dbfile, dest_dir=outputDir)
   
   ## cleanup
