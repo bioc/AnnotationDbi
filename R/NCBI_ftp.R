@@ -301,7 +301,9 @@
 
 ## Use when there is no GO data
 .getBlast2GOData <- function(tax_id, con) {
-  url = paste("http://bioinfo.cipf.es/b2gfar/_media/species:data:",
+##   url = paste("http://bioinfo.cipf.es/b2gfar/_media/species:data:",
+##         tax_id,".annot.zip",sep="")
+  url = paste("http://www.b2gfar.org/_media/species:data:",
         tax_id,".annot.zip",sep="")
   tmp <- tempfile()
   ##download.file(url, tmp, quiet=TRUE)
