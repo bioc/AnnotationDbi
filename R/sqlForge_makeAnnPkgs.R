@@ -101,7 +101,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -150,7 +150,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -199,7 +199,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -249,7 +249,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -295,7 +295,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -338,7 +338,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -388,7 +388,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -438,7 +438,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -489,7 +489,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -539,7 +539,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -589,7 +589,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -638,7 +638,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -687,7 +687,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
@@ -736,7 +736,7 @@ makeARABIDOPSISCHIP_DB <- function(...){
                 AnnObjPrefix=prefix
                 )
 
-    makeAnnDbPkg(seed, paste(outputDir,"/", prefix,".sqlite", sep=""), dest_dir = outputDir)
+    makeAnnDbPkg(seed, file.path(outputDir, paste0(prefix,".sqlite")), dest_dir = outputDir)
 
 }
 
