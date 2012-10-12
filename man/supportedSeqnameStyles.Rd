@@ -96,7 +96,7 @@
   supportedSeqnames()
 
 
-  styles = c("NCBI","ensembl")
+  styles = c("NCBI","UCSC")
   seqnames = as.character(c(1:5,"Pt","Mt"))
 
   testSeqnames(styles, seqnames, species)
