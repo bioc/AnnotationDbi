@@ -507,10 +507,11 @@
     if(i==1){
       res <- paste("SELECT ",fields," FROM",dblocs[i])
     }else{
-      if(species=="Saccharomyces cerevisiae" &&
-         (dblocs[i]=="gene2systematic" || dblocs[i-1]=="gene2systematic")){
-          join <- "systematic_name"
-      }else if(dblocs[i]=="c.probes" || dblocs[i-1]=="c.probes"){
+##       if(species=="Saccharomyces cerevisiae" &&
+##          (dblocs[i]=="gene2systematic" || dblocs[i-1]=="gene2systematic")){
+##           join <- "systematic_name"
+##       }else
+      if(dblocs[i]=="c.probes" || dblocs[i-1]=="c.probes"){
          ## IOW if joining to OR from c.probes we want "gene_id"
         if(species=="Saccharomyces cerevisiae"){
           join <- "systematic_name"
@@ -739,8 +740,9 @@
     problemCols <- cols[cols %in% blackList]
     ## give message if there are more than 4 (for now)
     if(length(problemCols) > 4){
-        msg = paste("You have selected the following columns that can have a many to one relationship with the primary key: ", paste(problemCols,collapse=", "),". Because you have selected more than a few such columns there is a risk that this selection may balloon up into a very large result as the number of rows returned multiplies accordingly. To experience smaller/more manageable results and faster retrieval times, you might want to consider selecting these columns separately.")
-        message(paste0("\n", paste(strwrap(msg, exdent=2), collapse="\n"),"\n"))
+        msg = paste("You have selected the following columns that can have a many to one relationship with the primary key: ", paste(problemCols,collapse=", "),". Because you have selected more than a few such columns there is a risk that this selection may balloon up into a very large result as the number of rows returned multiplies accordingly. To experience smaller/more manageable results and faster retrieval times, you might want to consider selecting these columns separately.") 
+        warning(paste(strwrap(msg, exdent=2), collapse="\n"),
+                immediate.=TRUE, call.=FALSE)
     }    
 }
 
