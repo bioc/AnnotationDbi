@@ -64,7 +64,7 @@
 ## Limitation: I can only have ONE table and ONE field for each list name.
 ## So if we have fields like GO that should pull back multiple things, then we
 ## have to expand those ahead of time.
-.expandCols <- function(cols){
+.expandCols <- function(x, cols){
   ## known expansions for cols:
   if("CHRLOC" %in% cols){ 
     after <- match("CHRLOC", cols)
@@ -78,7 +78,7 @@
     after <- match("GOALL", cols)
     cols <- append(cols, c("EVIDENCEALL","ONTOLOGYALL"),after) 
   }
-  if("ORF" %in% cols){ 
+  if("ORF" %in% cols && species(x)=="Saccharomyces cerevisiae"){ 
     after <- match("ORF", cols)
     cols <- append(cols, c("SGD"),after) 
   }  
@@ -294,7 +294,7 @@
                                                         "ENSEMBLPROT",
                                                         "ENSEMBLTRANS",
                                                         "UNIPROT") )]
-    .defTables <- c(.defTables, list("ALIAS2ORF" = c("alias","alias_symbol") ))
+    .defTables <- c(.defTables, list("ALIAS" = c("alias","alias_symbol") ))
   }
   if(species=="Pan troglodytes"){
     .defTables <- .defTables[!(names(.defTables) %in% c("ALIAS",
@@ -591,7 +591,7 @@
   ## Take the cols, append the keytype to FRONT
   cols <- unique(c(keytype, cols))
   ## do any necessary col expansion:
-  cols <- unique(.expandCols(cols))
+  cols <- unique(.expandCols(x, cols))
   ## generate the query
   sql <- .generateQuery(x, cols, keytype, keys)
   #message(sql)
@@ -791,7 +791,7 @@
   res <- .extractData(x, cols=cols, keytype=keytype, keys=keys)
   
   ## these are the colnames we need to have gotten back from the DB
-  expectedCols <- .expandCols(oriCols)
+  expectedCols <- .expandCols(x, oriCols)
   oriTabCols <- .getDBLocs(x, expectedCols, value="field")
   
   ## I need to know the jointype...
@@ -962,7 +962,7 @@
 
 ## Helper for setting the jointype to an appropriate default
 .chooseJoinType  <- function(x){
-  if(.getCentralID(x) == "ORF"){
+  if(.getCentralID(x) == "ORF" && species(x) == "Saccharomyces cerevisiae"){
     jointype <- "systematic_name"
   }else{
     jointype <- "gene_id"
@@ -1148,7 +1148,7 @@ setMethod("columns", "GODb",
     EGgeneTable <- "entrez_genes"
   }
   ## now decide
-  if(class(x) == "OrgDb"){
+  if(class(x) == "OrgDb" && species(x) != "Plasmodium falciparum"){
     res <- switch(EXPR = keytype,
                   "ENTREZID" = dbQuery(dbConn(x),
                     paste("SELECT gene_id FROM", EGgeneTable), 1L),
@@ -1159,6 +1159,12 @@ setMethod("columns", "GODb",
                   "PROBEID" =
                      stop("PROBEID is not supported for Organism packages"),
                   .queryForKeys(x, keytype))
+  }
+  if(class(x) == "OrgDb" && species(x) == "Plasmodium falciparum"){
+    res <-  switch(EXPR = keytype,
+                   "ORF" = dbQuery(dbConn(x),
+                     paste("SELECT gene_id FROM", EGgeneTable), 1L),
+                   .queryForKeys(x, keytype))
   }
   if(class(x) == "ChipDb"){
     res <- switch(EXPR = keytype,
