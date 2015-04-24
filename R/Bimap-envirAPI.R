@@ -28,13 +28,16 @@
 }
 
 setMethod("ls", signature(name="Bimap"),
-    function(name, pos, envir, all.names, pattern){
+    function(name, pos=-1L, envir=as.environment(pos), all.names=FALSE, 
+             pattern, sorted=TRUE){
         if (!missing(pos))
           warning("ignoring 'pos' argument")
         if (!missing(envir))
           warning("ignoring 'envir' argument")
         if (!missing(all.names))
           warning("ignoring 'all.names' argument")
+        if (!missing(sorted))
+          warning("ignoring 'sorted' argument")
         .ls(name, pos, envir, all.names, pattern)
     }
 )

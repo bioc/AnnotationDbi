@@ -41,8 +41,8 @@
 }
 
 \usage{
-  ls(name, pos = -1L, envir = as.environment(pos), all.names = FALSE, pattern, 
-  sorted = TRUE)
+  ls(name, pos = -1L, envir = as.environment(pos), all.names = FALSE,
+     pattern, sorted = TRUE)
   exists(x, where, envir, frame, mode, inherits)
   get(x, pos, envir, mode, inherits)
   #x[[i]]
