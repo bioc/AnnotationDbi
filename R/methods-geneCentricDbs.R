@@ -705,10 +705,14 @@
     ## I think that I have to throw a warning and NOT do this step in that case?
     keyTest <- any(duplicated(keys))
     rowTest <-  any(duplicated(tab[[jointype]]))         
-    if (keyTest ){ 
+    if (keyTest && !rowTest){ 
         ind = match(keys, tab[[jointype]])
         tab <- tab[ind,,drop=FALSE]
         rownames(tab) <- NULL
+    } else if (keyTest && rowTest) {
+        indlst <- split(row.names(tab), tab[[jointype]])
+        ind <- unlist(indlst[keys])
+        tab <- tab[ind,]
     }
     ## We now just always give (terse) messages about relationship of
     ## data to columns returned.
@@ -1739,7 +1743,7 @@ setMethod("keytypes", "GODb",
     ## next call select()
     ## TODO: remove the suppressWarnings() call once you get rid of that warning
     suppressMessages(
-        res <- select(x, keys=keys, columns=column, keytype=keytype))
+        res <- select(x, keys=unique(keys), columns=column, keytype=keytype))
     ## then split accordingly (and return sorted by initial keys)
     res <- split(as.character(res[[column]]), f=res[[keytype]])[keys]
     ## internal helper to toss out multiply matching things
