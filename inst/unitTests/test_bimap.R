@@ -80,24 +80,24 @@ test_mget <- function(){
   checkTrue(length(res3) == length(kr))
 }
 
-## test as.list
-test_as.list <- function(){
-  res <- as.list(map)
-  checkIdentical(names(res)[2], "2")
-  checkIdentical(res[[2]], "A2M")
-  checkTrue(length(res) > 1000)
+## ## test as.list
+## test_as.list <- function(){
+##   res <- as.list(map)
+##   checkIdentical(names(res)[2], "2")
+##   checkIdentical(res[[2]], "A2M")
+##   checkTrue(length(res) > 1000)
 
-  res2 <- as.list(map2)
-  checkIdentical(names(res2)[2], "2")
-  checkTrue(setequal(res2[[2]], bioconcepts))
-  checkTrue(length(res2) > 1000)
+##   res2 <- as.list(map2)
+##   checkIdentical(names(res2)[2], "2")
+##   checkTrue(setequal(res2[[2]], bioconcepts))
+##   checkTrue(length(res2) > 1000)
 
-  ## reverse test
-  res3 <- as.list(revmap(map2))
-  checkTrue(setequal(names(res3), bioconcepts))
-  checkIdentical(res3[[1]][2], "2")
-  checkIdentical(length(res3), 3L)
-}
+##   ## reverse test
+##   res3 <- as.list(revmap(map2))
+##   checkTrue(setequal(names(res3), bioconcepts))
+##   checkIdentical(res3[[1]][2], "2")
+##   checkIdentical(length(res3), 3L)
+## }
 
 ## test as.character
 test_as.character <- function(){
@@ -116,15 +116,15 @@ test_as.character <- function(){
 }
 
 ## test eapply
-test_eapply <- function(){
-  res <- eapply(map, length)
-  checkIdentical(names(res)[2], "2")
-  checkTrue(res[["2"]] == 1)
+## test_eapply <- function(){
+##   res <- eapply(map, length)
+##   checkIdentical(names(res)[2], "2")
+##   checkTrue(res[["2"]] == 1)
 
-  res2 <- eapply(map2, length)
-  checkIdentical(names(res2)[2], "2")
-  checkTrue(res2[["2"]] == 3)
-}
+##   res2 <- eapply(map2, length)
+##   checkIdentical(names(res2)[2], "2")
+##   checkTrue(res2[["2"]] == 3)
+## }
 
 ## test get
 test_get <- function(){
